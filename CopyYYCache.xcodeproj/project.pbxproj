@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F1287C4F1C21448F00E0939D /* YYKVStorage.m in Sources */ = {isa = PBXBuildFile; fileRef = F1287C4E1C21448F00E0939D /* YYKVStorage.m */; };
 		F1D5F7C61C1EAC5C0045DF7B /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = F1D5F7C51C1EAC5C0045DF7B /* main.m */; };
 		F1D5F7C91C1EAC5C0045DF7B /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = F1D5F7C81C1EAC5C0045DF7B /* AppDelegate.m */; };
 		F1D5F7CC1C1EAC5C0045DF7B /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = F1D5F7CB1C1EAC5C0045DF7B /* ViewController.m */; };
@@ -36,6 +37,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F1287C4D1C21448F00E0939D /* YYKVStorage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = YYKVStorage.h; sourceTree = "<group>"; };
+		F1287C4E1C21448F00E0939D /* YYKVStorage.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = YYKVStorage.m; sourceTree = "<group>"; };
 		F1D5F7C11C1EAC5C0045DF7B /* CopyYYCache.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CopyYYCache.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F1D5F7C51C1EAC5C0045DF7B /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		F1D5F7C71C1EAC5C0045DF7B /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -115,6 +118,8 @@
 				F1D5F7C41C1EAC5C0045DF7B /* Supporting Files */,
 				F1D5F7F71C1EAC870045DF7B /* YYMemoryCache.h */,
 				F1D5F7F81C1EAC870045DF7B /* YYMemoryCache.m */,
+				F1287C4D1C21448F00E0939D /* YYKVStorage.h */,
+				F1287C4E1C21448F00E0939D /* YYKVStorage.m */,
 			);
 			path = CopyYYCache;
 			sourceTree = "<group>";
@@ -279,6 +284,7 @@
 				F1D5F7F91C1EAC870045DF7B /* YYMemoryCache.m in Sources */,
 				F1D5F7C91C1EAC5C0045DF7B /* AppDelegate.m in Sources */,
 				F1D5F7C61C1EAC5C0045DF7B /* main.m in Sources */,
+				F1287C4F1C21448F00E0939D /* YYKVStorage.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -502,6 +508,7 @@
 				F1D5F7F01C1EAC5C0045DF7B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F1D5F7F11C1EAC5C0045DF7B /* Build configuration list for PBXNativeTarget "CopyYYCacheTests" */ = {
 			isa = XCConfigurationList;
@@ -510,6 +517,7 @@
 				F1D5F7F31C1EAC5C0045DF7B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F1D5F7F41C1EAC5C0045DF7B /* Build configuration list for PBXNativeTarget "CopyYYCacheUITests" */ = {
 			isa = XCConfigurationList;
@@ -518,6 +526,7 @@
 				F1D5F7F61C1EAC5C0045DF7B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

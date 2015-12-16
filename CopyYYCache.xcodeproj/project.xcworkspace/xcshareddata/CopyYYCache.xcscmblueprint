@@ -1,0 +1,30 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "DEAC1B097298439F9EBD0CB1B8B0155D4D053A90",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "DEAC1B097298439F9EBD0CB1B8B0155D4D053A90" : 0,
+    "BEEE0D24D6401C821EC7A24D30A0A4D9C92CD362" : 0
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "5BE5B3EB-BE1A-499D-9BFE-E2C1A55C92BE",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "DEAC1B097298439F9EBD0CB1B8B0155D4D053A90" : "CopyYYCache\/",
+    "BEEE0D24D6401C821EC7A24D30A0A4D9C92CD362" : ""
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "CopyYYCache",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "CopyYYCache.xcodeproj",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "github.com:tmyk104117\/YiCity.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "BEEE0D24D6401C821EC7A24D30A0A4D9C92CD362"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/tmyk104117\/CopyYYCache.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "DEAC1B097298439F9EBD0CB1B8B0155D4D053A90"
+    }
+  ]
+}

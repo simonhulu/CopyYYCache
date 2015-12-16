@@ -130,7 +130,7 @@ static inline dispatch_queue_t YYMemoryCacheGetReleaseQueue(){
 {
     CFDictionaryRemoveValue(_dic, (__bridge const void *)(node->_key)) ;
     _totalCost -= node->_cost ;
-    _totalCost-- ;
+    _totalCount-- ;
     if (node->_next) {
         node->_next->_prev = node->_prev ;
     }
@@ -193,6 +193,24 @@ static inline dispatch_queue_t YYMemoryCacheGetReleaseQueue(){
     OSSpinLock _lock ;
     _YYLinkedMap *_lru ;
     dispatch_queue_t _queue ;
+}
+
+-(void)_trimRecursively{
+    __weak typeof(self) _self = self ;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(_autoTrimInterval * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        __strong typeof (_self) self =_self ;
+        if (!self) return ;
+        [self _trimInBackground];
+        [self _trimRecursively];
+    });
+}
+
+-(void)_trimInBackground{
+    dispatch_async(_queue, ^{
+        [self _trimToCost:self->_costLimit] ;
+        [self _trimToCount:self->_countLimit];
+        [self _trimToAge:self->_ageLimit];
+    });
 }
 
 -(void)_trimToCost:(NSUInteger)costLimit{
@@ -321,15 +339,178 @@ static inline dispatch_queue_t YYMemoryCacheGetReleaseQueue(){
     self = super.init ;
     _lock = OS_SPINLOCK_INIT ;
     _lru = [_YYLinkedMap new] ;
-    _queue = dispatch_queue_create(@"com.common.cache.memory", DISPATCH_QUEUE_SERIAL);
+    _queue = dispatch_queue_create("com.common.cache.memory", DISPATCH_QUEUE_SERIAL);
     
-    _coun
+    _countLimit = NSUIntegerMax ;
+    _costLimit = NSUIntegerMax ;
+    _ageLimit = DBL_MAX ;
+    _autoTrimInterval = 5.0;
+    _shouldRemoveAllObjectsOnMemoryWarning = YES ;
+    _shouldRemoveAllObjectsWhenEnteringBackground = YES;
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(_appDidReceiveMemoryWarningNotification) name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(_appDidEnterBackgroundNotification) name:UIApplicationDidEnterBackgroundNotification object:nil];
+    
+    [self _trimRecursively];
+    return self;
+}
+
+-(void)dealloc
+{
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIApplicationDidEnterBackgroundNotification object:nil];
+    [_lru removeAll];
+}
+
+- (NSUInteger)totalCount {
+    OSSpinLockLock(&_lock);
+    NSUInteger count = _lru->_totalCount;
+    OSSpinLockUnlock(&_lock);
+    return count;
+}
+
+- (NSUInteger)totalCost {
+    OSSpinLockLock(&_lock);
+    NSUInteger totalCost = _lru->_totalCost;
+    OSSpinLockUnlock(&_lock);
+    return totalCost;
+}
+
+- (BOOL)releaseInMainThread {
+    OSSpinLockLock(&_lock);
+    BOOL releaseInMainThread = _lru->_releaseOnMainThread;
+    OSSpinLockUnlock(&_lock);
+    return releaseInMainThread;
+}
+
+- (void)setReleaseInMainThread:(BOOL)releaseInMainThread {
+    OSSpinLockLock(&_lock);
+    _lru->_releaseOnMainThread = releaseInMainThread;
+    OSSpinLockUnlock(&_lock);
+}
+
+- (BOOL)releaseAsynchronously {
+    OSSpinLockLock(&_lock);
+    BOOL releaseAsynchronously = _lru->_releaseAsynchronously;
+    OSSpinLockUnlock(&_lock);
+    return releaseAsynchronously;
+}
+
+- (void)setReleaseAsynchronously:(BOOL)releaseAsynchronously {
+    OSSpinLockLock(&_lock);
+    _lru->_releaseAsynchronously = releaseAsynchronously;
+    OSSpinLockUnlock(&_lock);
+}
+
+-(id)objectForKey:(id)key{
+    if (!key) return nil ;
+    OSSpinLockLock(&_lock) ;
+    _YYLinkedMapNode *node = CFDictionaryGetValue(_lru->_dic, (__bridge const void *)(key));
+    if (node) {
+        node->_time = CACurrentMediaTime() ;
+        [_lru  bringNodeToHead:node];
+    }
+    OSSpinLockUnlock(&_lock);
+    return node ? node->_value:nil ;
+}
+
+-(void)setObject:(id)object forKey:(id)key{
+    [self setObject:object forKey:key withCost:0];
+}
+
+-(void)setObject:(id)object forKey:(id)key withCost:(NSUInteger)cost{
+    if (!key) return ;
+    if (!object) {
+        [self removeObjectForKey:key];
+        return ;
+    }
+    OSSpinLockLock(&_lock);
+    _YYLinkedMapNode *node = CFDictionaryGetValue(_lru->_dic, (__bridge const void *)(key)) ;
+    NSTimeInterval now = CACurrentMediaTime() ;
+    if (node) {
+        _lru->_totalCost -= node->_cost ;
+        _lru->_totalCost +=cost ;
+        node->_cost = cost ;
+        node->_time = now ;
+        node->_value = object ;
+        [_lru bringNodeToHead:node];
+    }else{
+        node = [_YYLinkedMapNode new];
+        node->_cost = cost ;
+        node->_time = now ;
+        node->_key = key ;
+        node->_value = object ;
+        [_lru insertNodeAtHead:node];
+    }
+    if (_lru->_totalCost > _costLimit) {
+        dispatch_async(_queue, ^{
+            [self trimToCost:_costLimit];
+        });
+    }
+    if (_lru->_totalCount > _countLimit) {
+        _YYLinkedMapNode *node = [_lru removeTailNode];
+        if (_lru->_releaseAsynchronously) {
+            dispatch_queue_t queue = _lru->_releaseOnMainThread ?dispatch_get_main_queue():YYMemoryCacheGetReleaseQueue() ;
+            dispatch_async(queue, ^{
+                [node class];//hold and release in queue ;
+            });
+        }else if (_lru->_releaseOnMainThread && !pthread_main_np())
+        {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [node class];//hold and release in queue
+            });
+        }
+    }
+    OSSpinLockUnlock(&_lock);
+}
+
+-(void)removeObjectForKey:(id)key{
+    if(!key) return ;
+    OSSpinLockLock(&_lock) ;
+    _YYLinkedMapNode *node = CFDictionaryGetValue(_lru->_dic, (__bridge  const void *)key);
+    if (node) {
+        [_lru removeNode:node];
+        if (_lru->_releaseAsynchronously) {
+            dispatch_queue_t queue = _lru->_releaseOnMainThread ? dispatch_get_main_queue() :YYMemoryCacheGetReleaseQueue() ;
+            dispatch_async(queue, ^{
+                [node class];//hold and release in queue
+            });
+        }else if (_lru->_releaseOnMainThread && !pthread_main_np())
+        {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [node class];//hold and release in queue
+            });
+        }
+    }
+    OSSpinLockUnlock(&_lock);
 }
 
 -(void)removeAllObjects{
     OSSpinLockLock(&_lock);
     [_lru removeAll];
     OSSpinLockUnlock(&_lock);
+}
+
+-(void)trimtoCount:(NSUInteger)count{
+    if (count == 0) {
+        [self removeAllObjects] ;
+        return ;
+    }
+    [self _trimToCount:count] ;
+}
+
+-(void)trimToCost:(NSUInteger)cost{
+    [self _trimToCost:cost] ;
+}
+
+-(void)trimToAge:(NSTimeInterval)age{
+    [self _trimToAge:age];
+}
+
+-(NSString *)description
+{
+    if (_name) return [NSString stringWithFormat:@"<%@: %p> (%@)", self.class, self, _name];
+    else return [NSString stringWithFormat:@"<%@: %p>",self.class,self];
 }
 
 @end
