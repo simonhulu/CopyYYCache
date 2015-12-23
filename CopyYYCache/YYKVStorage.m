@@ -207,7 +207,96 @@ static NSString *const kTrashDirectoryName = @"trash";
     }
     sqlite3_bind_int(stmt, 5, timestamp);
     sqlite3_bind_int(stmt, 6, timestamp);
-    sqlite3_bind_blob(stmt, 7, extendedData.bytes, <#int n#>, <#void (*)(void *)#>)
+    sqlite3_bind_blob(stmt, 7, extendedData.bytes, (int)extendedData.length, 0);
+    
+    int result = sqlite3_step(stmt);
+    if(result != SQLITE_DONE){
+        if (_errorLogsEnabled) NSLog(@"%s line:%d sqlite insert error (%d): %s", __FUNCTION__, __LINE__, result, sqlite3_errmsg(_db));
+        return NO;
+    }
+    return YES ;
+}
+
+-(BOOL)_dbUpdateAccessTimeWithKey:(NSString *)key{
+    NSString *sql = @"update manifest set last_access_time = ?1 where key = ?2;";
+    sqlite3_stmt *stmt = [self _dbPrepareStmt:sql];
+    if (!stmt)return NO ;
+    sqlite3_bind_int(stmt, 1, (int)time(NULL));
+    sqlite3_bind_text(stmt, 2, key.UTF8String, -1, NULL);
+    int result = sqlite3_step(stmt);
+    if (result != SQLITE_DONE) {
+        if (_errorLogsEnabled) NSLog(@"%s line:%d sqlite update error (%d): %s", __FUNCTION__, __LINE__, result, sqlite3_errmsg(_db));
+        return NO;
+    }
+    return YES ;
+}
+
+-(BOOL)_dbUpdateAccessTimeWithKeys:(NSArray *)keys{
+    if(![self _dbIsReady])return NO ;
+    int t = (int)time(NULL);
+    NSString *sql = [NSString stringWithFormat:@"update manifest set last_access_time = %d where key in (%@);",t,[self _dbJoinedKeys:keys]];
+    sqlite3_stmt *stmt= NULL ;
+    int result = sqlite3_prepare_v2(_db, sql.UTF8String, -1, &stmt, NULL);
+    if (result) {
+        if (_errorLogsEnabled)  NSLog(@"%s line:%d sqlite stmt prepare error (%d): %s", __FUNCTION__, __LINE__, result, sqlite3_errmsg(_db));
+        return NO;
+    }
+    
+    [self _dbBindJoinedKeys:keys stmt:stmt fromIndex:1];
+    result = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    if (result != SQLITE_DONE) {
+        if (_errorLogsEnabled) NSLog(@"%s line:%d sqlite update error (%d): %s", __FUNCTION__, __LINE__, result, sqlite3_errmsg(_db));
+        return NO;
+    }
+    return YES ;
+}
+
+-(BOOL)_dbDeleteItemWithKey:(NSString *)key
+{
+    NSString *sql = @"delete from manifest where key = ?1;";
+    sqlite3_stmt *stmt = [self _dbPrepareStmt:sql];
+    if (!stmt) return NO ;
+    sqlite3_bind_text(stmt, 1, key.UTF8String, -1, NULL);
+    
+    int result = sqlite3_step(stmt);
+    if (result != SQLITE_DONE) {
+        if (_errorLogsEnabled) NSLog(@"%s line:%d db delete error (%d): %s", __FUNCTION__, __LINE__, result, sqlite3_errmsg(_db));
+        return NO;
+    }
+    return YES ;
+}
+
+-(BOOL)_dbDeleteItemWithKeys:(NSArray *)keys{
+    if (![self _dbIsReady]) return NO ;
+    NSString *sql = [NSString stringWithFormat:@"delete from manifest where key in (%@);",[self _dbJoinedKeys:keys]];
+    sqlite3_stmt *stmt = NULL ;
+    int result = sqlite3_prepare_v2(_db, sql.UTF8String, -1, &stmt, NULL);
+    if (result != SQLITE_OK) {
+        if (_errorLogsEnabled) NSLog(@"%s line:%d sqlite stmt prepare error (%d): %s", __FUNCTION__, __LINE__, result, sqlite3_errmsg(_db));
+        return NO;
+    }
+    [self _dbBindJoinedKeys:keys stmt:stmt fromIndex:1];
+    result = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    if (result == SQLITE_ERROR) {
+        if (_errorLogsEnabled) NSLog(@"%s line:%d sqlite delete error (%d): %s", __FUNCTION__, __LINE__, result, sqlite3_errmsg(_db));
+        return NO;
+    }
+    return YES;
+}
+
+-(BOOL)_dbDeleteItemWithSizeLargerThan:(int)size{
+    NSString *sql = @"delete from manifest where size > ?1;";
+    sqlite3_stmt *stmt = [self _dbPrepareStmt:sql] ;
+    if (!stmt) return NO ;
+    sqlite3_bind_int(stmt, 1, size);
+    int result = sqlite3_step(stmt);
+    if(result != SQLITE_DONE){
+        if (_errorLogsEnabled) NSLog(@"%s line:%d sqlite delete error (%d): %s", __FUNCTION__, __LINE__, result, sqlite3_errmsg(_db));
+        return NO;
+    }
+    return YES ;
 }
 
 
